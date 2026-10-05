@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="th"><head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>แจ้งเหตุ – โรงเรียนเดชะปัตตนยานุกูล</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link rel="stylesheet" href="css/checkin.css"/>
+<style>.thumbs{display:flex;gap:.5rem;flex-wrap:wrap}.thumbs img{width:80px;height:80px;object-fit:cover;border-radius:8px}</style>
+</head><body>
+<header class="topbar"><div class="topbar-inner">
+  <div class="topbar-brand"><img src="school-logo.png" class="topbar-logo" alt="" onerror="this.style.display='none'"/>
+    <div><span class="topbar-title">แจ้งเหตุ</span><span class="topbar-sep">|</span><span class="topbar-sub">โรงเรียนเดชะปัตตนยานุกูล</span></div></div>
+</div></header>
+<main class="main-content">
+  <section class="card" id="form-sec">
+    <div class="card-hd blue"><div class="card-hd-icon">🚨</div><div>
+      <h2 class="card-title">แจ้งเหตุในโรงเรียน</h2><p class="card-desc">กรอกข้อมูลให้ครบถ้วน</p></div></div>
+    <div class="card-body">
+      <input id="hp" style="position:absolute;left:-9999px" tabindex="-1" autocomplete="off" aria-hidden="true"/>
+      <div class="field-group"><label class="field-label" for="f-name"><span class="badge-num">1</span> ชื่อผู้แจ้ง</label>
+        <input id="f-name" class="inp" placeholder="ชื่อ-นามสกุล" maxlength="80"/></div>
+      <div class="field-group"><label class="field-label" for="f-role"><span class="badge-num">2</span> สถานะผู้แจ้ง</label>
+        <select id="f-role" class="sel" style="padding-right:1rem"><option>นักเรียน</option><option>ครู</option><option>บุคลากร</option><option>อื่นๆ</option></select></div>
+      <div class="field-group"><label class="field-label" for="f-type"><span class="badge-num">3</span> ประเภทเหตุ</label>
+        <select id="f-type" class="sel" style="padding-right:1rem">
+          <option value="">— เลือกประเภทเหตุ —</option>
+          <option>🤒 นักเรียนเจ็บป่วย</option><option>🥊 ทะเลาะวิวาท</option>
+          <option>🚬 สูบบุหรี่ / บุหรี่ไฟฟ้า</option><option>📌 อื่นๆ</option></select></div>
+      <div class="field-group"><label class="field-label"><span class="badge-num">4</span> จุดเกิดเหตุบนแผนที่ (แตะแผนที่เพื่อปักหมุด)</label>
+        <div id="map" style="height:260px;border-radius:8px;z-index:1"></div>
+        <div id="loc-status" style="font-size:.75rem;color:#666">ยังไม่ได้ปักหมุด</div></div>
+      <div class="field-group"><label class="field-label" for="f-loc"><span class="badge-num">5</span> รายละเอียดสถานที่</label>
+        <input id="f-loc" class="inp" placeholder="เช่น อาคาร 3 ชั้น 2 ห้องน้ำ / ห้อง ม.2/1"/></div>
+      <div class="field-group"><label class="field-label" for="f-who"><span class="badge-num">6</span> นักเรียนที่เกี่ยวข้อง (ถ้าทราบ)</label>
+        <input id="f-who" class="inp" placeholder="ชื่อ / ชั้น"/></div>
+      <div class="field-group"><label class="field-label" for="f-detail"><span class="badge-num">7</span> รายละเอียดเพิ่มเติม</label>
+        <textarea id="f-detail" class="inp" rows="3"></textarea></div>
+      <div class="field-group"><label class="field-label"><span class="badge-num">8</span> แนบรูปภาพ (ไม่เกิน 2 รูป)</label>
+        <input type="file" id="f-photo" accept="image/*" multiple/><div class="thumbs" id="thumbs"></div></div>
+      <div class="actions"><button class="btn-next" id="btn" disabled>แจ้งเหตุ</button></div>
+    </div>
+  </section>
+  <section id="ok-sec" class="success-sec" style="display:none">
+    <div class="ok-circle">✓</div><h2 class="ok-title">แจ้งเหตุสำเร็จ!</h2>
+    <p class="ok-desc">เจ้าหน้าที่ได้รับเรื่องแล้ว</p>
+    <button class="btn-more" onclick="location.reload()">+ แจ้งเหตุใหม่</button></section>
+</main>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="js/config.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+let pos=null,marker=null,photos=[];
+const map=L.map('map').setView([SCHOOL.lat,SCHOOL.lng],SCHOOL.zoom);
+const sat=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:20,attribution:'Esri'}).addTo(map);
+const osm=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19});
+L.control.layers({'ภาพถ่ายดาวเทียม':sat,'แผนที่ถนน':osm}).addTo(map);
+const need=()=>$('btn').disabled=!($('f-name').value.trim()&&$('f-type').value&&pos);
+function setPos(ll,txt){pos={lat:ll.lat,lng:ll.lng};
+  if(marker)marker.setLatLng(ll);else{marker=L.marker(ll,{draggable:true}).addTo(map);
+    marker.on('dragend',()=>setPos(marker.getLatLng(),'📍 ย้ายหมุดแล้ว'));}
+  $('loc-status').textContent=txt;need();}
+map.on('click',e=>setPos(e.latlng,'📍 ปักหมุดแล้ว (ลากหมุดเพื่อแก้ไข)'));
+['f-name','f-type'].forEach(i=>$(i).addEventListener('input',need));
+
+async function shrink(file){const b=await createImageBitmap(file),s=Math.min(1,1280/Math.max(b.width,b.height));
+  const c=document.createElement('canvas');c.width=b.width*s;c.height=b.height*s;
+  c.getContext('2d').drawImage(b,0,0,c.width,c.height);return c.toDataURL('image/jpeg',.7);}
+$('f-photo').onchange=async e=>{photos=[];$('thumbs').innerHTML='';
+  for(const f of [...e.target.files].slice(0,2)){const d=await shrink(f);photos.push(d);
+    const i=new Image();i.src=d;$('thumbs').appendChild(i);}};
+
+$('btn').onclick=async()=>{
+  $('btn').disabled=true;$('btn').textContent='กำลังส่ง…';
+  try{await api('report',{hp:$('hp').value,reporter:$('f-name').value.trim(),role:$('f-role').value,type:$('f-type').value,
+      location:$('f-loc').value.trim(),students:$('f-who').value.trim(),detail:$('f-detail').value.trim(),
+      lat:pos.lat,lng:pos.lng,photos});
+    $('form-sec').style.display='none';$('ok-sec').style.display='flex';
+  }catch(e){$('btn').disabled=false;$('btn').textContent='แจ้งเหตุ';alert('ส่งไม่สำเร็จ: '+e.message);}};
+
+navigator.geolocation&&navigator.geolocation.getCurrentPosition(p=>{
+  const ll={lat:p.coords.latitude,lng:p.coords.longitude};
+  if(map.distance([SCHOOL.lat,SCHOOL.lng],ll)<1500){map.setView(ll,19);setPos(ll,'✅ ใช้ตำแหน่ง GPS (ลากหมุดเพื่อแก้ไข)');}
+},()=>{},{enableHighAccuracy:true,timeout:8000});
+</script></body></html>

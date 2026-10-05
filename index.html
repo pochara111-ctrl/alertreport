@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="th"><head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ระบบแจ้งเหตุ – โรงเรียนเดชะปัตตนยานุกูล</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="css/login.css"/>
+</head><body>
+<div class="page-bg"><div class="bg-circle c1"></div><div class="bg-circle c2"></div>
+<div class="login-wrapper">
+  <div class="brand-header">
+    <img src="school-logo.png" alt="" class="brand-logo-img" onerror="this.style.display='none'"/>
+    <div class="brand-text"><h1 class="brand-title" style="font-size:1.5rem">ระบบแจ้งเหตุในโรงเรียน</h1>
+    <p class="brand-subtitle">โรงเรียนเดชะปัตตนยานุกูล</p></div>
+  </div>
+  <div class="login-card">
+    <div class="card-header"><div class="header-texts">
+      <h2 class="card-title">เจ้าหน้าที่เข้าสู่ระบบ</h2><p class="card-subtitle">ฝ่ายปกครอง / พยาบาล / ผู้ดูแลระบบ</p></div></div>
+    <form class="login-form" id="f">
+      <div class="form-group"><label class="form-label" for="u">ชื่อผู้ใช้งาน</label>
+        <input class="form-control" style="padding-left:1rem" id="u" required autocomplete="username"/></div>
+      <div class="form-group"><label class="form-label" for="p">รหัสผ่าน</label>
+        <input class="form-control" style="padding-left:1rem" type="password" id="p" required autocomplete="current-password"/></div>
+      <div id="err" class="login-error" style="display:none"></div>
+      <button type="submit" class="btn-login" id="b"><span>เข้าสู่ระบบ</span></button>
+    </form>
+    <div style="padding:0 2rem 1.5rem"><a href="report.html"><button class="btn-qr report" type="button">🚨 ไปหน้าแจ้งเหตุ (ไม่ต้องล็อกอิน)</button></a></div>
+    <div class="card-footer"><p>สำหรับเจ้าหน้าที่ที่ได้รับอนุญาตเท่านั้น</p></div>
+  </div>
+</div></div>
+<script src="js/config.js"></script>
+<script>
+if(sessionStorage.getItem('tok')) location.href='dashboard.html';
+f.onsubmit=async e=>{e.preventDefault();err.style.display='none';b.disabled=true;b.firstChild.textContent='กำลังตรวจสอบ…';
+  try{const j=await api('login',{username:u.value,password:p.value});
+    sessionStorage.setItem('tok',j.token);sessionStorage.setItem('role',j.role);sessionStorage.setItem('name',j.name);
+    location.href='dashboard.html';
+  }catch(x){err.textContent='⚠ '+x.message;err.style.display='block';p.value='';b.disabled=false;b.firstChild.textContent='เข้าสู่ระบบ';}};
+</script></body></html>
